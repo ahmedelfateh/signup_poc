@@ -1,0 +1,30 @@
+# Ruff configuration file
+
+# Same as Black.
+line-length = 88
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".git",
+    ".ruff_cache",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "build",
+    "dist",
+    "migrations",
+]
+
+# Assume Python 3.10
+target-version = "py310"
+
+[lint]
+# Enable flake8-bugbear (`B`) rules.
+select = ["E", "F", "B", "I"]
+ignore = []
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # Unused imports
+
+[lint.isort]
+known-first-party = ["settings"]
