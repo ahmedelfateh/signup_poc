@@ -1,6 +1,6 @@
 import pytest
 
-from signup_form.calculators import FormScoreCalculator
+from signup_form.calculators import FormScoreCalculator, ScoreCalculatorFactory
 
 
 @pytest.mark.django_db
@@ -109,3 +109,72 @@ class TestFormScoreCalculator:
         data_it = {"nationality": "IT"}
         score_it = FormScoreCalculator.calculate_score(data_it, schema)
         assert score_it == 0
+
+    def test_weighted_score_calculation(self):
+        """Test score calculation using the weighted score calculator"""
+        schema = {
+            "properties": {
+                "risk_level": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high"],
+                    "score": [
+                        {"low": 5, "weight": 0.5},
+                        {"medium": 10, "weight": 0.8},
+                        {"high": 15, "weight": 1.2},
+                    ],
+                    "score_type": "weighted",
+                }
+            }
+        }
+        data = {"risk_level": "high"}
+
+        score = FormScoreCalculator.calculate_score(data, schema)
+        assert score == 18  # 15 * 1.2 = 18
+
+    def test_calculator_factory(self):
+        """Test the ScoreCalculatorFactory returns correct calculator types"""
+        normal_calculator = ScoreCalculatorFactory.get_calculator("normal")
+        weighted_calculator = ScoreCalculatorFactory.get_calculator("weighted")
+        default_calculator = ScoreCalculatorFactory.get_calculator("nonexistent")
+
+        # Test normal calculator
+        score_list = [{"option1": 5}, {"option2": 10}]
+        assert normal_calculator.calculate_field_score("option1", score_list) == 5
+        assert normal_calculator.calculate_field_score("option2", score_list) == 10
+
+        # Test weighted calculator with a weight
+        weighted_score_list = [{"option1": 5, "weight": 2.0}]
+        assert (
+            weighted_calculator.calculate_field_score("option1", weighted_score_list)
+            == 10.0
+        )
+
+        # Test that default calculator is returned for unknown types
+        assert default_calculator.calculate_field_score("option1", score_list) == 5
+
+    def test_mixed_calculator_types(self):
+        """Test form with multiple fields using different calculator types"""
+        schema = {
+            "properties": {
+                "standard_field": {
+                    "type": "string",
+                    "enum": ["A", "B", "C"],
+                    "score": [{"A": 1}, {"B": 2}, {"C": 3}],
+                    "score_type": "normal",
+                },
+                "weighted_field": {
+                    "type": "string",
+                    "enum": ["X", "Y", "Z"],
+                    "score": [
+                        {"X": 10, "weight": 0.5},
+                        {"Y": 20, "weight": 1.0},
+                        {"Z": 30, "weight": 1.5},
+                    ],
+                    "score_type": "weighted",
+                },
+            }
+        }
+        data = {"standard_field": "B", "weighted_field": "Z"}
+
+        score = FormScoreCalculator.calculate_score(data, schema)
+        assert score == 47  # 2 + (30 * 1.5) = 47

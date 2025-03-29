@@ -88,8 +88,7 @@ class FormScoreCalculator:
 
                 # Get the appropriate calculator based on score_type
                 calculator = ScoreCalculatorFactory.get_calculator(score_type)
-                score_value = calculator.calculate_field_score(
-                    user_choice, score_list)
+                score_value = calculator.calculate_field_score(user_choice, score_list)
 
                 # Add to total score
                 total_score += score_value

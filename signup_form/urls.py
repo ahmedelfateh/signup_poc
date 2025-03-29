@@ -8,6 +8,7 @@ from .views import (
     FormSchemaViewSet,
     UserJourneyViewSet,
     WhiteLabelViewSet,
+    db_fields_list,
 )
 
 router = DefaultRouter()
@@ -20,4 +21,5 @@ router.register(r"responses", FormResponseViewSet, basename="form-response")
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("db-fields/", db_fields_list, name="db-fields-list"),
 ]

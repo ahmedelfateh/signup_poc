@@ -1,9 +1,10 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, permissions, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 
 from .models import (
+    DBFields,
     FlowStep,
     FormFlow,
     FormResponse,
@@ -30,6 +31,20 @@ class WhiteLabelViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "slug"]
     ordering_fields = ["name", "created_at"]
+
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
+def db_fields_list(request):
+    """API endpoint to list all available database field types"""
+    fields = [
+        {
+            "value": field[0],
+            "label": field[1],
+        }
+        for field in DBFields.choices
+    ]
+    return Response(fields)
 
 
 class FormSchemaViewSet(viewsets.ModelViewSet):

@@ -28,6 +28,37 @@ class UserJourneyType(models.TextChoices):
     LIVE_USER = "LIVE_USER", _("Live User")
 
 
+class DBFields(models.TextChoices):
+    """Enum to define common database fields used in forms
+    and have a custom validator in the FormValidator class
+    and got saved to a real DB model fields not only the FormResponse model
+    """
+
+    FIRST_NAME = "FIRST_NAME", _("First Name")
+    LAST_NAME = "LAST_NAME", _("Last Name")
+    FULL_NAME = "FULL_NAME", _("Full Name")
+    EMAIL = "EMAIL", _("Email Address")
+    PHONE = "PHONE", _("Phone Number")
+    ADDRESS = "ADDRESS", _("Street Address")
+    CITY = "CITY", _("City")
+    STATE = "STATE", _("State/Province")
+    POSTAL_CODE = "POSTAL_CODE", _("Postal/Zip Code")
+    COUNTRY = "COUNTRY", _("Country")
+    NATIONALITY = "NATIONALITY", _("Nationality")
+    DATE_OF_BIRTH = "DATE_OF_BIRTH", _("Date of Birth")
+    GENDER = "GENDER", _("Gender")
+    OCCUPATION = "OCCUPATION", _("Occupation")
+    COMPANY = "COMPANY", _("Company Name")
+    WEBSITE = "WEBSITE", _("Website")
+    TAX_ID = "TAX_ID", _("Tax ID")
+    SSN = "SSN", _("Social Security Number")
+    PASSPORT = "PASSPORT", _("Passport Number")
+    ID_NUMBER = "ID_NUMBER", _("ID Number")
+    MARITAL_STATUS = "MARITAL_STATUS", _("Marital Status")
+    EDUCATION = "EDUCATION", _("Education Level")
+    INCOME = "INCOME", _("Income Level")
+
+
 class FormFlow(models.Model):
     """Model to manage sequences of forms"""
 

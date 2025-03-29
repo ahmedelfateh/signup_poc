@@ -132,13 +132,11 @@ class TestFormResponseAPI:
         )
 
         url = reverse("form-response-journey-responses")
-        response = authenticated_client.get(
-            url, {"journey_id": user_journey.id})
+        response = authenticated_client.get(url, {"journey_id": user_journey.id})
 
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) >= 1
-        assert any("Michael" in str(resp["response_data"])
-                   for resp in response.data)
+        assert any("Michael" in str(resp["response_data"]) for resp in response.data)
 
     def test_form_response_with_invalid_data(
         self, authenticated_client, regular_user, form_schema, user_journey, flow_steps
@@ -249,8 +247,7 @@ class TestFormResponseAPI:
         }
 
         url_schema = reverse("formschema-list")
-        schema_response = admin_client.post(
-            url_schema, schema_data, format="json")
+        schema_response = admin_client.post(url_schema, schema_data, format="json")
         assert schema_response.status_code == status.HTTP_201_CREATED
         form_schema_id = schema_response.data["id"]
 
@@ -277,3 +274,127 @@ class TestFormResponseAPI:
         # Verify the score was saved to database
         form_response = FormResponse.objects.get(id=response.data["id"])
         assert form_response.total_score == 5.0
+
+    def test_form_response_with_weighted_scoring(
+        self, authenticated_client, regular_user, admin_client, white_label, flow_steps
+    ):
+        """Test form responses with weighted scoring calculation"""
+        # Create a schema with weighted scoring
+        schema_data = {
+            "title": "Weighted Scoring Form",
+            "description": "Form with weighted scoring fields",
+            "white_label": white_label.id,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "risk_level": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high"],
+                        "score": [
+                            {"low": 5, "weight": 0.5},
+                            {"medium": 10, "weight": 1.0},
+                            {"high": 15, "weight": 1.5},
+                        ],
+                        "score_type": "weighted",
+                    },
+                    "income": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high"],
+                        "score": [{"low": 1}, {"medium": 3}, {"high": 5}],
+                        "score_type": "normal",
+                    },
+                },
+            },
+            "is_active": True,
+        }
+
+        url_schema = reverse("formschema-list")
+        schema_response = admin_client.post(url_schema, schema_data, format="json")
+        assert schema_response.status_code == status.HTTP_201_CREATED
+        form_schema_id = schema_response.data["id"]
+
+        # Create a response with both weighted and normal scored fields
+        url = reverse("form-response-list")
+        data = {
+            "form_schema": form_schema_id,
+            "response_data": {"risk_level": "high", "income": "medium"},
+            "is_complete": True,
+            "user": regular_user.id,
+            "flow_step": flow_steps[0].id,
+        }
+
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+
+        # Check the total score: (15 * 1.5) + 3 = 25.5
+        assert "total_score" in response.data
+        assert response.data["total_score"] == 25.5
+
+        # Verify score is saved correctly in database
+        form_response = FormResponse.objects.get(id=response.data["id"])
+        assert form_response.total_score == 25.5
+
+    def test_update_response_recalculates_score(
+        self, authenticated_client, regular_user, admin_client, white_label, flow_steps
+    ):
+        """Test that updating a form response recalculates the score"""
+        # Create a schema with scoring
+        schema_data = {
+            "title": "Update Score Test Form",
+            "description": "Testing score recalculation on update",
+            "white_label": white_label.id,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "rating": {
+                        "type": "string",
+                        "enum": ["poor", "fair", "good", "excellent"],
+                        "score": [
+                            {"poor": 1},
+                            {"fair": 2},
+                            {"good": 3},
+                            {"excellent": 4},
+                        ],
+                    },
+                },
+            },
+            "is_active": True,
+        }
+
+        url_schema = reverse("formschema-list")
+        schema_response = admin_client.post(url_schema, schema_data, format="json")
+        form_schema_id = schema_response.data["id"]
+
+        # Create initial form response
+        url = reverse("form-response-list")
+        data = {
+            "form_schema": form_schema_id,
+            "response_data": {"rating": "fair"},
+            "is_complete": True,
+            "user": regular_user.id,
+            "flow_step": flow_steps[0].id,
+        }
+
+        response = authenticated_client.post(url, data, format="json")
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data["total_score"] == 2.0
+
+        # Now update the response
+        update_url = reverse("form-response-detail", kwargs={"pk": response.data["id"]})
+        update_data = {
+            "form_schema": form_schema_id,
+            "response_data": {"rating": "excellent"},
+            "is_complete": True,
+            "user": regular_user.id,
+            "flow_step": flow_steps[0].id,
+        }
+
+        update_response = authenticated_client.put(
+            update_url, update_data, format="json"
+        )
+        assert update_response.status_code == status.HTTP_200_OK
+        assert update_response.data["total_score"] == 4.0
+
+        # Verify the updated score in database
+        form_response = FormResponse.objects.get(id=response.data["id"])
+        assert form_response.total_score == 4.0

@@ -18,8 +18,7 @@ from .validators import FormValidator
 class WhiteLabelSerializer(serializers.ModelSerializer):
     class Meta:
         model = WhiteLabel
-        fields = ["id", "name", "slug",
-                  "is_active", "created_at", "updated_at"]
+        fields = ["id", "name", "slug", "is_active", "created_at", "updated_at"]
         read_only_fields = ["created_at", "updated_at"]
 
 
@@ -50,8 +49,7 @@ class FormSchemaSerializer(serializers.ModelSerializer):
         try:
             # Basic validation that it's a valid schema format
             if not isinstance(value, dict):
-                raise serializers.ValidationError(
-                    "Schema must be a valid JSON object")
+                raise serializers.ValidationError("Schema must be a valid JSON object")
 
             # Check for required fields in a schema
             required_fields = ["type", "properties"]
@@ -63,8 +61,7 @@ class FormSchemaSerializer(serializers.ModelSerializer):
 
             return value
         except Exception as e:
-            raise serializers.ValidationError(
-                f"Invalid schema format: {str(e)}") from e
+            raise serializers.ValidationError(f"Invalid schema format: {str(e)}") from e
 
     def validate_ui_schema(self, value):
         """Validate that the UI schema is a valid JSON object"""
@@ -85,8 +82,7 @@ class FormSchemaSerializer(serializers.ModelSerializer):
 
 
 class FlowStepSerializer(serializers.ModelSerializer):
-    form_title = serializers.CharField(
-        source="form_schema.title", read_only=True)
+    form_title = serializers.CharField(source="form_schema.title", read_only=True)
 
     class Meta:
         model = FlowStep
@@ -102,8 +98,7 @@ class FlowStepSerializer(serializers.ModelSerializer):
 
 class FormFlowSerializer(serializers.ModelSerializer):
     steps = FlowStepSerializer(many=True, read_only=True)
-    white_label_name = serializers.CharField(
-        source="white_label.name", read_only=True)
+    white_label_name = serializers.CharField(source="white_label.name", read_only=True)
 
     class Meta:
         model = FormFlow
@@ -165,8 +160,7 @@ class UserJourneySerializer(serializers.ModelSerializer):
 
 
 class FormResponseSerializer(serializers.ModelSerializer):
-    form_title = serializers.CharField(
-        source="form_schema.title", read_only=True)
+    form_title = serializers.CharField(source="form_schema.title", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
     user = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
